@@ -1,0 +1,25 @@
+{
+    "debug": true,
+    "database": "root:root-mysql-pw@tcp(127.0.0.1:3306)/domeos?loc=Local&parseTime=true",
+    "maxIdle": 100,
+    "http": {
+        "enabled": true,
+        "listen": "0.0.0.0:6066"
+    },
+    "redis": {
+        "addr": "0.0.0.0:6379",
+        "maxIdle": 5
+    },
+    "queue": {
+        "sms": "/sms",
+        "mail": "/mail"
+    },
+    "worker": {
+        "sms": 10,
+        "mail": 50
+    },
+    "api": {
+        "sms": "http://11.11.11.11:8000/sms",
+        "mail": "http://11.11.11.11:9000/mail"
+    }
+}

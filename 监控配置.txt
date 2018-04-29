@@ -1,0 +1,141 @@
+数据库相关配置：
+
+配置名称	配置内容
+版本	MySQL 5.7
+端口	3306
+root密码	root-mysql-pw
+domeos用户名	domeos
+domeos用户密码	domeos-mysql-pw
+数据目录	/data/domeos/mysql
+
+================================================================
+======================== transfer ==============================
+docker run -d --restart=always \
+  -p 6060:6060 \
+  -p 8433:8433 \
+  -e JUDGE_CLUSTER="\"judge-00\":\"localhost:6080\"" \
+  -e GRAPH_CLUSTER="\"graph-00\":\"localhost:6070\"" \
+  --name transfer \
+  pub.domeos.org/domeos/transfer:0.0.15-supervisor
+
+
+curl -s localhost:6060/health
+================================================================
+
+======================== graph ==============================
+
+docker run -d --restart=always \
+  -p 6071:6071 \
+  -p 6070:6070 \
+  -v /opt/graph/data:/home/work/data/6070 \
+  -e DB_DSN="\"root:root-mysql-pw@tcp(192.168.1.118:3306)/graph?loc=Local&parseTime=true\"" \
+  --name graph \
+  pub.domeos.org/domeos/graph:0.5.7-supervisor
+
+curl -s localhost:6071/health
+ 
+================================================================
+
+======================== query ==============================
+
+docker run -d --restart=always \
+  -p 9966:9966 \
+  -e GRAPH_CLUSTER="\"graph-00\" : \"localhost:6070\"" \
+  --name query \
+  pub.domeos.org/domeos/query:1.5.1-supervisor
+
+
+curl -s localhost:9966/health
+
+
+================================================================
+
+======================== hbs ==============================
+
+docker run -d --restart=always \
+    -p 6031:6031 \
+    -p 6030:6030 \
+    -e DATABASE="\"root:root-mysql-pw@tcp(192.168.1.118:3306)/portal?loc=Local&parseTime=true\"" \
+    --name hbs \
+    pub.domeos.org/domeos/hbs:1.1.0-supervisor
+
+
+curl -s localhost:6031/health
+
+================================================================
+
+======================== judge ==============================
+
+docker run -d --restart=always \
+    -p 6081:6081 \
+    -p 6080:6080 \
+    -e HBS_SERVERS="[\"localhost:6030\"]" \
+    -e ALARM_REDIS_DSN="\"localhost:6379\"" \
+    -e ALARM_REDIS_PASS="\"my_redis\"" \
+    --name judge \
+    pub.domeos.org/domeos/judge:2.0.2-supervisor 
+
+curl -s localhost:6081/health
+
+
+
+================================================================
+
+======================== alarm ==============================
+
+docker run -d --restart=always \
+    -p 9912:9912 \
+    -e DATABASE="\"root:root-mysql-pw@tcp(192.168.1.118:3306)/domeos?loc=Local&parseTime=true\"" \
+    -e REDIS_ADDR="\"192.168.1.118:6379\"" \
+    -e REDIS_PASS="\"my_redis\"" \
+    -e API_DOMEOS="\"http://domeos.example.com\"" \
+    --name alarm \
+    pub.domeos.org/domeos/alarm:1.0.1
+
+
+curl -s localhost:9912/health
+
+
+================================================================
+
+======================== sender ==============================
+
+docker run -d --restart=always \
+    -p 6066:6066 \
+    -e DATABASE="\"root:root-mysql-pw@tcp(192.168.1.118:3306)/domeos?loc=Local&parseTime=true\"" \
+    -e REDIS_ADDR="\"192.168.1.118:6379\"" \
+    -e REDIS_PASS="\"my_redis\"" \
+    --name sender \
+    pub.domeos.org/domeos/sender:1.0.1
+
+
+curl -s localhost:6066/health
+
+================================================================
+
+======================== nodata ==============================
+
+docker run -d --restart=always \
+    -p 6090:6090 \
+    -e QUERY_QUERYADDR="\"192.168.1.118:9966\"" \
+    -e CONFIG_DSN="\"root:root-mysql-pw@tcp(192.168.1.118:3306)/portal?loc=Local&parseTime=true\"" \
+    -e SENDER_TRANSFERADDR="\"192.168.1.118:6060\"" \
+    --name nodata \
+    pub.domeos.org/domeos/nodata:0.0.8-supervisor
+
+curl -s localhost:6090/health
+
+================================================================
+
+======================== redis ==============================
+
+docker run -d \
+    -p 6379:6379 \
+    pub.domeos.org/domeos/redis:3.0.7 \
+    redis-server --timeout 300 --maxmemory 5gb --maxmemory-policy allkeys-lru --port 6379 --requirepass my_redis
+
+
+
+
+
+

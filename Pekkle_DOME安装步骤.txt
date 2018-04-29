@@ -1,0 +1,238 @@
+1. Remove existing installation:
+   yum remove docker \
+                  docker-client \
+                  docker-client-latest \
+                  docker-common \
+                  docker-latest \
+                  docker-latest-logrotate \
+                  docker-logrotate \
+                  docker-selinux \
+                  docker-engine-selinux \
+                  docker-engine \
+				  docker-ce
+				  
+				  
+2. Add source for docker-ce:
+
+   yum install -y yum-utils \
+   device-mapper-persistent-data \
+   lvm2
+  
+   yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+	
+3. Install docker-ce, and start it:
+
+   
+   yum install docker-ce
+   
+   systemctl enable docker   # enable the auto boot for docker
+   systemctl start docker
+   
+**** Uninstall, and remove images: ***
+   yum remove docker-ce
+   rm -rf /var/lib/docker
+
+4. Install Registry
+   docker pull registry:2.6.2
+   docker run registry
+   
+   这是由于Registry为了安全性考虑，默认是需要https证书支持的. 但是我们可以通过一个简单的办法解决：
+
+   // ************************* Old version *************************
+	修改/etc/docker/daemon.json文件
+
+	#vi /etc/docker/daemon.json
+	{
+		"insecure-registries": ["<ip>:5000"] 
+	}
+	#systemctl daemon-reload 
+	#systemctl restart docker
+
+	这里，ip可以用localhost，然后下面打tag和push的时候也要用localhost相对应。
+	
+   // ************************* New version *************************
+    vi /lib/systemd/system/docker.service
+    把其中
+
+	ExecStart=/usr/bin/docker daemon -H fd://
+	改为
+
+	ExecStart=/usr/bin/docker daemon --insecure-registry $YOUR_REGISTRY_HOST -H fd://
+	
+	(Actually my version didn't contain "-H fd://")
+	
+	然后重启docker服务
+
+	systemctl daemon-reload
+	service docker restart
+ 
+    启动 registry:
+    docker run -d -p 5000:5000 -v /mnt/data/registry:/var/lib/registry registry:2.6.2
+	
+	检查：
+	ss -l| grep 5000
+    http://192.168.1.135:5000/v2/_catalog
+
+5. Install domeOS
+   curl http://dl.domeos.org/install.sh -o ./install.sh
+   sh ./install.sh
+   
+   iptables -F
+   iptables -P FORWARD ACCEPT
+   
+6. Login to dome, set the registry address:
+   admin/admin
+   192.168.1.135:5000
+   
+   
+7. Install node machine
+
+yum install net-tools
+
+//with download
+curl -o start_node_centos.sh http://domeos-script.bjctc.scs.sohucs.com/start_node_centos.sh && sudo sh start_node_centos.sh --api-server 192.168.1.135:8888 --cluster-dns 192.168.1.135 --cluster-domain domeos.local --monitor-transfer 192.168.1.135:8433 --heartbeat-addr 192.168.1.135:6030 --registry-type http --registry-arg 192.168.1.135:5000 --etcd-server 192.168.1.135:2379 --node-labels Node1=USER_LABEL_VALUE,TESTENV=HOSTENVTYPE
+
+//without download
+sudo sh start_node_centos.sh --api-server 192.168.1.135:8888 --cluster-dns 192.168.1.135 --cluster-domain domeos.local --monitor-transfer 192.168.1.135:8433 --heartbeat-addr 192.168.1.135:6030 --registry-type http --registry-arg 192.168.1.135:5000 --etcd-server 192.168.1.135:2379 --node-labels Node2=USER_LABEL_VALUE,TESTENV=HOSTENVTYPE
+
+8. Run pekkle/dome
+
+LOCAL_IP=192.168.1.135
+MYSQL_USER=domeos
+MYSQL_PASSWORD=domeos-mysql-pw
+MYSQL_PORT=3306
+MYSQL_ROOT_PASSWORD=root-mysql-pw
+DOMEOS_PREFIX=dome
+DOMEOS_PORT=8080
+#IMAGE_SERVER=pekkle/dome:1.0
+IMAGE_SERVER=domeos/server:1.6.0
+
+docker run -d --name=${DOMEOS_PREFIX}_server \
+    -p ${DOMEOS_PORT}:8080 \
+    -e MYSQL_HOST=${LOCAL_IP} \
+    -e MYSQL_PORT=${MYSQL_PORT} \
+    -e MYSQL_USERNAME=${MYSQL_USER} \
+    -e MYSQL_PASSWORD=${MYSQL_PASSWORD} \
+    -e MYSQL_DB="domeos" \
+    ${IMAGE_SERVER}
+	
+====================================================================================================================================
+************************************************************************************************************************************
+====================================================================================================================================
+
+ 
+gitlab: pekkle/99999999
+
+domeOS: admin/admin
+
+========================================================
+GITLAB:
+
+yum localinstall gitlab-ce-8.17.8-ce.0.el7.x86_64.rpm
+
+修改gitlab地址（/etc/gitlab/gitlab.rb），用gitlab主机的ip地址和端口，然后执行 gitlab-ctl reconfigure, gitlab-ctl restart
+external_url 'http://192.168.1.138:80'
+
+
+/etc/gitlab/gitlab.rb ，要修改这一行 ，这是gitlab的unicorn组件占用的端口，不过如果你以后把domeOS改到80,那就两者没有冲突了，可以不改这里
+# unicorn['port'] = 8080
+
+========================================================
+REGISTRY:
+
+http://localhost:5000/v2/alpine_base/tags/list
+
+基础镜像添加方法：
+镜像所在仓库=> 192.168.1.135:5000
+镜像名称=> dome_alpine
+镜像版本号=> latest
+镜像描述=> xxcxxcxcxc
+
+curl http://localhost:5000/v2/_catalog
+
+========================================================
+
+这是由于Registry为了安全性考虑，默认是需要https证书支持的. 但是我们可以通过一个简单的办法解决：
+
+修改/etc/docker/daemon.json文件
+
+#vi /etc/docker/daemon.json
+{
+    "insecure-registries": ["<ip>:5000"] 
+}
+#systemctl daemon-reload 
+#systemctl restart docker
+
+这里，ip可以用localhost，然后下面打tag和push的时候也要用localhost相对应。
+
+
+docker login localhost:5000
+account/password:  admin/admin
+
+========================================================
+
+四、通过 docker tag重命名镜像，使之与registry匹配
+
+docker tag pub.domeos.org/domeos/compileimage-java:maven-3.3.9_jdk-8 localhost:5000/compileimage-java:latest
+
+五、上传镜像到Registry
+
+docker push localhost:5000/compileimage-java:latest
+
+========================================================
+
+MySQL:
+
+官方镜像内的mysql的用户名/密码：
+root/root-mysql-pw
+domeos/domeos-mysql-pw
+
+========================================================
+
+前端开发环境：
+
+sudo apt-get install ruby-full
+或
+sudo yum install ruby
+
+
+========================================================
+
+Dockerfile:
+FROM localhost:5000/dome_alpine:latest
+CMD echo "Hello from alpine, 3" && sleep 999
+
+========================================================
+
+用来构建maven pom项目的命令
+
+docker run -it --rm -v "$PWD":/usr/src/mymaven -v "$HOME/.m2":/root/.m2 -v "$PWD/target:/usr/src/mymaven/target" -w /usr/src/mymaven maven mvn clean package
+
+
+部署运行命令：
+cd /target && ls -l && java -jar demo-0.0.1-SNAPSHOT.jar
+
+CMD ["/bin/sh"]
+
+
+========================================================
+Docker 常用命令：
+ 
+
+#删除所有未运行的容器（已经运行的删除不了，未运行的就一起被删除了）
+
+sudo docker rm $(sudo docker ps -a -q)
+
+#过滤出特定字符串的image并删除，下面是删除有dummy字样的image的例子：
+
+docker rmi `docker images | grep 5000 | awk '{print $3}'`
+docker rmi `docker images | grep /pause | awk '{print $3}'`
+
+
+========================================================
+
+检查 open-falcon
+
+cat /etc/supervisor.d/*.ini

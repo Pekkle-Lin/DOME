@@ -1,0 +1,17 @@
+{
+    "debug": "false",
+    "http": {
+        "enabled":  true,
+        "listen":   "0.0.0.0:9966"
+    },
+    "graph": {
+        "connTimeout": 1000,
+        "callTimeout": 5000,
+        "maxConns": 32,
+        "maxIdle": 32,
+        "replicas": 500,
+        "cluster": {
+            "graph-00": "0.0.0.0:6070"
+        }
+    }
+}

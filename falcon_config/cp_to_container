@@ -1,0 +1,12 @@
+echo "Please input container ID prefix:"
+read prefix
+docker cp ./falcon-nodata/cfg.json $prefix:/open-falcon/falcon-nodata/cfg.json
+docker cp ./falcon-sender/cfg.json $prefix:/open-falcon/falcon-sender/cfg.json
+docker cp ./falcon-alarm/cfg.json $prefix:/open-falcon/falcon-alarm/cfg.json
+docker cp ./falcon-judge/cfg.json $prefix:/open-falcon/falcon-judge/cfg.json
+docker cp ./falcon-hbs/cfg.json $prefix:/open-falcon/falcon-hbs/cfg.json
+docker cp ./falcon-query/cfg.json $prefix:/open-falcon/falcon-query/cfg.json
+docker cp ./falcon-transfer/cfg.json $prefix:/open-falcon/falcon-transfer/cfg.json
+docker cp ./falcon-graph/cfg.json $prefix:/open-falcon/falcon-graph/cfg.json
+
+docker exec $prefix supervisorctl restart all

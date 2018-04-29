@@ -1,0 +1,24 @@
+echo ""
+echo "transfer"
+curl -s localhost:6060/health
+echo ""
+echo "graph"
+curl -s localhost:6071/health
+echo ""
+echo "query"
+curl -s localhost:9966/health
+echo ""
+echo "hbs"
+curl -s localhost:6031/health
+echo ""
+echo "judge"
+curl -s localhost:6081/health
+echo ""
+echo "alarm"
+curl -s localhost:9912/health
+echo ""
+echo "sender"
+curl -s localhost:6066/health
+echo ""
+echo "nodata"
+curl -s localhost:6090/health

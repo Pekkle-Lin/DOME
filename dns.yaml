@@ -1,0 +1,86 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: skydns-svc
+  labels:
+    app: skydns-svc
+spec:
+  selector:
+    app: skydns
+  type: ClusterIP
+  clusterIP: 172.16.40.1
+  ports:
+    - name: dns
+      port: 53
+      protocol: UDP
+    - name: dns-tcp
+      port: 53
+      protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: skydns
+  labels:
+    app: skydns
+    version: v9
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: skydns
+      version: v9
+  template:
+    metadata:
+      labels:
+        app: skydns
+        version: v9
+    spec:
+      containers:
+        - name: skydns
+          image: pub.domeos.org/domeos/skydns:1.5
+          command:
+            - "/skydns"
+          args:
+            - "--machines=http://0.0.0.1:4012,http://0.0.0.2:4012,http://0.0.0.3:4012"
+            - "--domain=domeos.local"
+            - "--addr=0.0.0.0:53"
+            - "--nameservers=8.8.8.8:53"
+            - "--path-prefix=prefix/skydns"
+          ports:
+            - containerPort: 53
+              name: dns-udp
+              protocol: UDP
+            - containerPort: 53
+              name: dns-tcp
+              protocol: TCP
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: kube2sky
+  labels:
+    app: kube2sky
+    version: v9
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: kube2sky
+      version: v9
+  template:
+    metadata:
+      labels:
+        app: kube2sky
+        version: v9
+    spec:
+      containers:
+        - name: kube2sky
+          image: pub.domeos.org/domeos/kube2sky:0.8
+          command:
+            - "/kube2sky"
+          args:
+            - "--etcd_servers=http://0.0.0.1:4012,http://0.0.0.2:4012,http://0.0.0.3:4012"
+            - "--domain=domeos.local"
+            - "--kube_master_url=http://0.0.0.1:8080"
+            - "--etcd_prefix=prefix/skydns"
