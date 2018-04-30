@@ -198,9 +198,10 @@ fi
 
 IMAGE_MYSQL=${REGISTRY}domeos/mysql-domeos:5.8
 IMAGE_K8S=${REGISTRY}domeos/k8s-domeos:1.4.7
-IMAGE_OPENFALCON=${REGISTRY}domeos/openfalcon-domeos:0.5
+#IMAGE_OPENFALCON=${REGISTRY}domeos/openfalcon-domeos:0.5
+IMAGE_OPENFALCON=hub.c.163.com/pekkle/dome:1.0
 #IMAGE_SERVER=${REGISTRY}domeos/server:1.6.0
-IMAGE_SERVER=hub.c.163.com/pekkle/dome:latest
+IMAGE_SERVER=hub.c.163.com/pekkle/dome:1.0
 
 # confirm local ip
 echo -e "\033[36m[INFO] Confirming local ip...\033[0m"
@@ -289,7 +290,7 @@ pull_image ${IMAGE_SERVER}
 echo -e "\033[36m[INFO] Confirming mysql setting..."
 check_container ${DOMEOS_PREFIX}_mysql
 if [ $? = 1 ]; then
-    docker run --restart=always --name=${DOMEOS_PREFIX}_mysql -p ${MYSQL_PORT}:3306 -e MYSQL_USER=${MYSQL_USER} -e MYSQL_PASSWORD=${MYSQL_PASSWORD} -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} -e LOCAL_IP=${LOCAL_IP} -e DOMEOS_PREFIX=${DOMEOS_PREFIX} -e KUBE_PORT=${KUBE_PORT} -e DOMEOS_PORT=${DOMEOS_PORT} -d ${IMAGE_MYSQL}
+    docker run --restart=on-failure:5 --name=${DOMEOS_PREFIX}_mysql -p ${MYSQL_PORT}:3306 -e MYSQL_USER=${MYSQL_USER} -e MYSQL_PASSWORD=${MYSQL_PASSWORD} -e MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD} -e LOCAL_IP=${LOCAL_IP} -e DOMEOS_PREFIX=${DOMEOS_PREFIX} -e KUBE_PORT=${KUBE_PORT} -e DOMEOS_PORT=${DOMEOS_PORT} -d ${IMAGE_MYSQL}
     if [ $? -ne 0 ]; then
         docker rm -f ${DOMEOS_PREFIX}_mysql &>/dev/null
         echo -e "\033[31m[ERROR] MySQL start failed!\033[0m";
@@ -305,7 +306,7 @@ echo -e "\033[36m[INFO] Confirming k8s master setting...\033[0m"
 
 check_container ${DOMEOS_PREFIX}_k8s
 if [ $? = 1 ]; then
-    docker run --restart=always --name=${DOMEOS_PREFIX}_k8s -d --net=host -e LOCAL_IP=${LOCAL_IP} -e SERVICE_IP_RANGE=${SERVICE_IP_RANGE} -e KUBE_PORT=${KUBE_PORT} -e DOMEOS_PREFIX=${DOMEOS_PREFIX} -e NAME_SERVER=${NAME_SERVER} ${IMAGE_K8S}
+    docker run --restart=on-failure:5 --name=${DOMEOS_PREFIX}_k8s -d --net=host -e LOCAL_IP=${LOCAL_IP} -e SERVICE_IP_RANGE=${SERVICE_IP_RANGE} -e KUBE_PORT=${KUBE_PORT} -e DOMEOS_PREFIX=${DOMEOS_PREFIX} -e NAME_SERVER=${NAME_SERVER} ${IMAGE_K8S}
     if [ $? -ne 0 ]; then
         echo -e "\033[31m[ERROR] k8s master start failed!\033[0m";
         exit 1;
@@ -334,7 +335,7 @@ echo -e "\033[32m[OK] add success."
 echo -e "\033[36m[INFO] Confirming open-falcon components...\033[0m"
 check_container ${DOMEOS_PREFIX}_openfalcon
 if [ $? = 1 ]; then
-    docker run --restart=always --name=${DOMEOS_PREFIX}_openfalcon \
+    docker run --restart=on-failure:5 --name=${DOMEOS_PREFIX}_openfalcon \
     --net=host \
     -e DB_DATABASE="\"${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${LOCAL_IP}:${MYSQL_PORT})/graph?loc=Local&parseTime=true\"" \
     -d ${IMAGE_OPENFALCON}
@@ -345,7 +346,7 @@ fi
 echo -e "\033[36m[INFO] Comfirming domeos server...\033[0m"
 check_container ${DOMEOS_PREFIX}_server
 if [ $? = 1 ]; then
-    docker run --restart=always -d --name=${DOMEOS_PREFIX}_server \
+    docker run --restart=on-failure:5 -d --name=${DOMEOS_PREFIX}_server \
     -p ${DOMEOS_PORT}:8080 \
     -e MYSQL_HOST=${LOCAL_IP} \
     -e MYSQL_PORT=${MYSQL_PORT} \

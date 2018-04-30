@@ -1,0 +1,12 @@
+echo "Input the target image ID prefix :"
+read id
+echo "Input the image name :"
+read name
+echo "Input the version No. :"
+read version
+docker login -u happymoon2000@163.com -p KOLApekkle hub.c.163.com
+docker tag ${id} hub.c.163.com/pekkle/${name}:${version}
+docker push hub.c.163.com/pekkle/${name}:${version}
+docker login -u admin -p admin localhost:5000
+echo "Done !"
+
