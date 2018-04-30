@@ -199,7 +199,7 @@ fi
 IMAGE_MYSQL=${REGISTRY}domeos/mysql-domeos:5.8
 IMAGE_K8S=${REGISTRY}domeos/k8s-domeos:1.4.7
 #IMAGE_OPENFALCON=${REGISTRY}domeos/openfalcon-domeos:0.5
-IMAGE_OPENFALCON=hub.c.163.com/pekkle/dome:1.0
+IMAGE_OPENFALCON=hub.c.163.com/pekkle/openfalcon:1.0
 #IMAGE_SERVER=${REGISTRY}domeos/server:1.6.0
 IMAGE_SERVER=hub.c.163.com/pekkle/dome:1.0
 
