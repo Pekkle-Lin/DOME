@@ -201,8 +201,8 @@ sudo yum install ruby
 ========================================================
 
 Dockerfile:
-FROM localhost:5000/dome_alpine:latest
-CMD echo "Hello from alpine, 3" && sleep 999
+FROM 192.168.1.135:5000/dome_alpine:latest
+CMD echo "Hello from alpine, 3" && sleep 99
 
 ========================================================
 

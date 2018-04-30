@@ -9,4 +9,12 @@ docker cp ./falcon-query/cfg.json $prefix:/open-falcon/falcon-query/cfg.json
 docker cp ./falcon-transfer/cfg.json $prefix:/open-falcon/falcon-transfer/cfg.json
 docker cp ./falcon-graph/cfg.json $prefix:/open-falcon/falcon-graph/cfg.json
 
-docker exec $prefix supervisorctl restart all
+docker exec $prefix supervisorctl restart falcon-graph && sleep 1
+docker exec $prefix supervisorctl restart falcon-transfer && sleep 1
+docker exec $prefix supervisorctl restart falcon-query && sleep 1
+docker exec $prefix supervisorctl restart falcon-hbs && sleep 1
+docker exec $prefix supervisorctl restart falcon-judge && sleep 1
+docker exec $prefix supervisorctl restart falcon-alarm && sleep 1
+docker exec $prefix supervisorctl restart falcon-sender && sleep 1
+docker exec $prefix supervisorctl restart falcon-nodata && sleep 1
+docker exec $prefix supervisorctl restart falcon-redis
