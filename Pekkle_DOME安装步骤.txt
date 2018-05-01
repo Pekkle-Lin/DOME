@@ -1,102 +1,109 @@
-1. Remove existing installation:
+1) Remove existing installation:
    yum remove docker \
-                  docker-client \
-                  docker-client-latest \
-                  docker-common \
-                  docker-latest \
-                  docker-latest-logrotate \
-                  docker-logrotate \
-                  docker-selinux \
-                  docker-engine-selinux \
-                  docker-engine \
-				  docker-ce
+              docker-client \
+              docker-client-latest \
+              docker-common \
+              docker-latest \
+              docker-latest-logrotate \
+              docker-logrotate \
+              docker-selinux \
+              docker-engine-selinux \
+              docker-engine \
+		      docker-ce
 				  
 				  
-2. Add source for docker-ce:
+2) Add source for docker-ce:
 
-   yum install -y yum-utils \
-   device-mapper-persistent-data \
-   lvm2
-  
-   yum-config-manager \
-    --add-repo \
-    https://download.docker.com/linux/centos/docker-ce.repo
-	
-3. Install docker-ce, and start it:
+   yum install -y yum-utils device-mapper-persistent-data lvm2
+   yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
 
+   # Manual download can be found in:
+   # https://download.docker.com/linux/centos/7/x86_64/stable/Packages/docker-ce-18.03.1.ce-1.el7.centos.x86_64.rpm
+
+3) Install docker-ce, and start it:
    
+   # The verified version is Docker version 18.03.0-ce, build 0520e24
    yum install docker-ce
    
-   systemctl enable docker   # enable the auto boot for docker
-   systemctl start docker
+   #enable the auto boot for docker
+   systemctl enable docker   
    
-**** Uninstall, and remove images: ***
-   yum remove docker-ce
-   rm -rf /var/lib/docker
+   #start the docker now
+   systemctl start docker    
+   
+   # **** If want to uninstall docker , and remove images, then run below commands: ****
+   #   yum remove docker-ce
+   #   rm -rf /var/lib/docker
 
-4. Install Registry
+
+4) Install Registry
+
    docker pull registry:2.6.2
    
-   启动 registry:
-        docker run -d -p 5000:5000 -v /mnt/data/registry:/var/lib/registry registry:2.6.2
-   
-   这是由于Registry为了安全性考虑，默认是需要https证书支持的. 但是我们可以通过一个简单的办法解决：
+   # Start registry, map the images repository to host machine /mnt/data/registry folder:
+   docker run -d -p 5000:5000 -v /mnt/data/registry:/var/lib/registry registry:2.6.2
 
-   // ************************* Old version *************************
-	修改/etc/docker/daemon.json文件
+   # ************************* New version of Registry, follow below steps to disable the https *************************
+   vi /lib/systemd/system/docker.service
 
-	#vi /etc/docker/daemon.json
-	{
-		"insecure-registries": ["<ip>:5000"] 
-	}
-	#systemctl daemon-reload 
-	#systemctl restart docker
-
-	这里，ip可以用localhost，然后下面打tag和push的时候也要用localhost相对应。
+   ### To modify this line, to add the argument "--insecure-registry" and YOUR_REGISTRY_HOST_NAME : ###
+   ### Before: => ###  ExecStart=/usr/bin/docker daemon -H fd://
+   ### After : => ###  ExecStart=/usr/bin/docker daemon --insecure-registry $YOUR_REGISTRY_HOST_NAME -H fd://
 	
-   // ************************* New version *************************
-    vi /lib/systemd/system/docker.service
-    把其中
-
-	ExecStart=/usr/bin/docker daemon -H fd://
-	改为
-
-	ExecStart=/usr/bin/docker daemon --insecure-registry $YOUR_REGISTRY_HOST -H fd://
-	
-	(Actually my version didn't contain "-H fd://")
-	
-	然后重启docker服务
-
-	systemctl daemon-reload
-	service docker restart
+   systemctl daemon-reload
+   service docker restart
  	
-	检查：
-	ss -l| grep 5000
-    http://192.168.1.135:5000/v2/_catalog
+   # health check
+   netstat -lanp | grep 5000
+   curl http://localhost:5000/v2/_catalog  #e.g. the host name is localhost
 
-5. Install domeOS
-   curl http://dl.domeos.org/install.sh -o ./install.sh
-   sh ./install.sh
+
+5) Install dome
+
+   #curl http://dl.domeos.org/install.sh -o ./install.sh
+   ./install_pekkle.sh
    
-   iptables -F
-   iptables -P FORWARD ACCEPT
+   # iptables -F
+   # iptables -P FORWARD ACCEPT
+
    
-6. Login to dome, set the registry address:
-   admin/admin
-   192.168.1.135:5000
+6) Login to dome, set the registry address:
+   # admin/admin
+   # 192.168.1.135:5000
+
+
+7) Install node machine
+
+   yum install net-tools
+
+   # And then add node with the script from dome.
+
+
+8) Install and config gitlab-ce-8
+
+   ### First, download the file to local machine: 
+   curl -o gitlab.rpm http://mirrors.zju.edu.cn/gitlab-ce/yum/el7/gitlab-ce-8.17.8-ce.0.el7.x86_64.rpm
+   yum localinstall gitlab.rpm
    
+   ### Config gitlab
+   vi /etc/gitlab/gitlab.rb
    
-7. Install node machine
+   ### Make these changes: ###
+   
+   ### Before: => ###  unicorn['port'] = 8080
+   ### After : => ###  unicorn['port'] = 8081
+   
+   ### Before: => ###  external_url 'http://xxxxxxxxx'
+   ### After : => ###  external_url 'http://192.168.1.135:80'
+   
+   gitlab-ctl reconfigure
+   gitlab-ctl restart
+   
+====================================================================================================================================
+************************************************************************************************************************************
+====================================================================================================================================
 
-yum install net-tools
-
-//with download
-curl -o start_node_centos.sh http://domeos-script.bjctc.scs.sohucs.com/start_node_centos.sh && sudo sh start_node_centos.sh --api-server 192.168.1.135:8888 --cluster-dns 192.168.1.135 --cluster-domain domeos.local --monitor-transfer 192.168.1.135:8433 --heartbeat-addr 192.168.1.135:6030 --registry-type http --registry-arg 192.168.1.135:5000 --etcd-server 192.168.1.135:2379 --node-labels Node1=USER_LABEL_VALUE,TESTENV=HOSTENVTYPE
-
-//without download
-sudo sh start_node_centos.sh --api-server 192.168.1.135:8888 --cluster-dns 192.168.1.135 --cluster-domain domeos.local --monitor-transfer 192.168.1.135:8433 --heartbeat-addr 192.168.1.135:6030 --registry-type http --registry-arg 192.168.1.135:5000 --etcd-server 192.168.1.135:2379 --node-labels Node2=USER_LABEL_VALUE,TESTENV=HOSTENVTYPE
-
-8. Run pekkle/dome
+*** Run pekkle/dome
 
 LOCAL_IP=192.168.1.135
 MYSQL_USER=domeos
@@ -117,11 +124,6 @@ docker run -d --name=${DOMEOS_PREFIX}_server \
     -e MYSQL_DB="domeos" \
     ${IMAGE_SERVER}
 	
-====================================================================================================================================
-************************************************************************************************************************************
-====================================================================================================================================
-
- 
 gitlab: pekkle/99999999
 
 domeOS: admin/admin
