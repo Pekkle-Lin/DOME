@@ -36,7 +36,9 @@
 
 4. Install Registry
    docker pull registry:2.6.2
-   docker run registry
+   
+   启动 registry:
+        docker run -d -p 5000:5000 -v /mnt/data/registry:/var/lib/registry registry:2.6.2
    
    这是由于Registry为了安全性考虑，默认是需要https证书支持的. 但是我们可以通过一个简单的办法解决：
 
@@ -67,10 +69,7 @@
 
 	systemctl daemon-reload
 	service docker restart
- 
-    启动 registry:
-    docker run -d -p 5000:5000 -v /mnt/data/registry:/var/lib/registry registry:2.6.2
-	
+ 	
 	检查：
 	ss -l| grep 5000
     http://192.168.1.135:5000/v2/_catalog
@@ -236,3 +235,6 @@ docker rmi `docker images | grep /pause | awk '{print $3}'`
 检查 open-falcon
 
 cat /etc/supervisor.d/*.ini
+
+in node, check :
+/etc/hosts
